@@ -37,6 +37,13 @@
                             "typeName" : "String",
                             "value" : "box"
                           }
+                        ],
+                        [
+                          "width",
+                          {
+                            "typeName" : "Double",
+                            "value" : 0.10000000000000001
+                          }
                         ]
                       ],
                       "factory" : {
@@ -57,6 +64,39 @@
                             "typeName" : "String",
                             "value" : "Steel Box"
                           }
+                        ],
+                        [
+                          "rigidBody-enabled",
+                          {
+                            "typeName" : "Bool",
+                            "value" : false
+                          }
+                        ],
+                        [
+                          "rigidBody-material",
+                          {
+                            "typeName" : "RigidBodyMaterial",
+                            "value" : {
+                              "builtIn" : "ice",
+                              "overrides" : {
+
+                              }
+                            }
+                          }
+                        ],
+                        [
+                          "rigidBody-motionType",
+                          {
+                            "typeName" : "REMotionType",
+                            "value" : "static"
+                          }
+                        ],
+                        [
+                          "rigidBody-shapeType",
+                          {
+                            "typeName" : "String",
+                            "value" : "box"
+                          }
                         ]
                       ]
                     },
@@ -74,9 +114,9 @@
                         0,
                         1,
                         0,
-                        0,
-                        0.05000000074505806,
-                        -0.0019660596735775471,
+                        -0.23190964758396149,
+                        0.049999997019767761,
+                        0.021101783961057663,
                         1
                       ]
                     }
@@ -105,12 +145,12 @@
                   0,
                   0,
                   0,
-                  0.80754852294921875,
+                  0.80754858255386353,
                   -0.58980095386505127,
                   0,
                   0,
                   0.58980095386505127,
-                  0.80754852294921875,
+                  0.80754858255386353,
                   0,
                   0,
                   1.135667085647583,
