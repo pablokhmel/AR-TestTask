@@ -10,24 +10,31 @@ import RealityKit
 import ARKit
 
 class ViewController: UIViewController {
+
+    var cubesCount = 0 {
+        didSet {
+            joystickView.isHidden = cubesCount == 0
+        }
+    }
     
     private lazy var arView: ARView = {
         let view = ARView()
         view.translatesAutoresizingMaskIntoConstraints = false
         view.isUserInteractionEnabled = true
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        let press = UILongPressGestureRecognizer(target: self, action: #selector(handlePress(_:)))
         view.addGestureRecognizer(tap)
+        view.addGestureRecognizer(press)
         return view
     }()
 
-    private lazy var label: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 16)
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.text = "text"
-        label.textColor = .black
-        label.backgroundColor = .white
-        return label
+    private lazy var joystickView: JoystickView = {
+        let view = JoystickView(frame: CGRect.zero)
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.isUserInteractionEnabled = true
+        view.delegate = self
+        view.isHidden = true
+        return view
     }()
     
     override func viewDidLoad() {
@@ -44,7 +51,7 @@ class ViewController: UIViewController {
 
     private func setupSubviews() {
         view.addSubview(arView)
-        arView.addSubview(label)
+        arView.addSubview(joystickView)
 
         NSLayoutConstraint.activate([
             arView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -52,8 +59,10 @@ class ViewController: UIViewController {
             arView.topAnchor.constraint(equalTo: view.topAnchor),
             arView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            label.centerXAnchor.constraint(equalTo: arView.centerXAnchor),
-            label.topAnchor.constraint(equalTo: arView.topAnchor, constant: 40)
+            joystickView.centerXAnchor.constraint(equalTo: arView.centerXAnchor),
+            joystickView.bottomAnchor.constraint(equalTo: arView.safeAreaLayoutGuide.bottomAnchor, constant: -40),
+            joystickView.heightAnchor.constraint(equalToConstant: 100),
+            joystickView.widthAnchor.constraint(equalToConstant: 100)
         ])
     }
 
@@ -68,8 +77,9 @@ class ViewController: UIViewController {
     private func addModel(to point: simd_float3) {
         // Creating object
         let cube = MeshResource.generateBox(size: 0.05)
-        let material = SimpleMaterial(color: .yellow, isMetallic: false)
+        let material = SimpleMaterial(color: UIColor.getRandomColor(), isMetallic: false)
         let entity = ModelEntity(mesh: cube, materials: [material])
+        entity.generateCollisionShapes(recursive: true)
 
         // Adding object
         let anchor = AnchorEntity(world: point)
@@ -77,18 +87,53 @@ class ViewController: UIViewController {
 
         // Adding anchor to view
         arView.scene.addAnchor(anchor)
+
+        cubesCount += 1
+    }
+
+    private func changeColor(_ model: Entity) {
+        let model = model as? ModelEntity
+        let newMaterials = SimpleMaterial(color: UIColor.getRandomColor(), isMetallic: false)
+        model?.model?.materials = [newMaterials]
+    }
+
+    private func removeModel(_ model: Entity) {
+        guard let anchor = model.anchor else { return }
+        arView.scene.removeAnchor(anchor)
+
+        cubesCount -= 1
     }
 
     @objc
     private func handleTap(_ sender: UITapGestureRecognizer?) {
         guard let tapLocation = sender?.location(in: arView) else { return }
 
-        guard let query = arView.makeRaycastQuery(from: tapLocation, allowing: .estimatedPlane, alignment: .horizontal) else { print("Query"); return }
+        guard let query = arView.makeRaycastQuery(from: tapLocation, allowing: .estimatedPlane, alignment: .horizontal) else { return }
 
         guard let ray = arView.session.raycast(query).first else { print("Ray"); return }
 
         let position = simd_make_float3(ray.worldTransform.columns.3)
 
-        addModel(to: position)
+        if let entity = arView.entity(at: tapLocation) {
+            changeColor(entity)
+        } else {
+            addModel(to: position)
+        }
+    }
+
+    @objc func handlePress(_ sender: UILongPressGestureRecognizer?) {
+        guard let location = sender?.location(in: arView) else { return }
+
+        if let entity = arView.entity(at: location) {
+            removeModel(entity)
+        } else {
+            print("not found")
+        }
+    }
+}
+
+extension ViewController: JoystickViewDelegate {
+    func joystickView(joystickView: JoystickView, didMovedTo angle: Double) {
+        
     }
 }
