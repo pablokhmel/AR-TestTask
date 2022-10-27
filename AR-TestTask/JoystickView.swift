@@ -8,19 +8,17 @@
 import UIKit
 
 protocol JoystickViewDelegate {
-    func joystickView(joystickView: JoystickView, didMovedTo angle: Double)
-
-    func joystickView(joystickView: JoystickView, didStopedUsing: Bool)
+    func joystickView(joystickView: JoystickView, didMovedTo angle: Float)
 }
 
 extension JoystickViewDelegate {
-    func joystickView(joystickView: JoystickView, didMovedTo angle: Double) {}
-
-    func joystickView(joystickView: JoystickView, didStopedUsing: Bool) {}
+    func joystickView(joystickView: JoystickView, didMovedTo angle: Float) {}
 }
 
 class JoystickView: UIView {
     var delegate: JoystickViewDelegate?
+
+    var timer: Timer?
 
     private lazy var circleView: UIView = {
         let view = UIView()
@@ -45,23 +43,26 @@ class JoystickView: UIView {
         layer.borderColor = UIColor.white.cgColor
         layer.borderWidth = 5
 
-        let center = CGPoint(x: frame.width / 2, y: frame.height / 2)
-        joystickMovedTo(point: center)
+        joystickMovedTo()
     }
 
     private func commonInit() {
         addSubview(circleView)
     }
 
-    private func joystickMovedTo(point: CGPoint) {
+    private func joystickMovedTo(point: CGPoint? = nil) {
+        guard let point = point else {
+            circleView.frame = CGRect(origin: CGPoint(x: frame.width / 2 - 20, y: frame.height / 2 - 20),
+                                      size: CGSize(width: 40, height: 40))
+            fireTimer()
+
+            return
+        }
+
         let x = point.x - frame.width / 2
         let y = point.y - frame.height / 2
 
-        guard x != 0 else {
-            circleView.frame = CGRect(origin: CGPoint(x: point.x - 20, y: point.y - 20),
-                                      size: CGSize(width: 40, height: 40))
-            return
-        }
+        guard x != 0 else { return }
 
         let newX = x / sqrt(x * x + y * y)
         let newY = y / sqrt(x * x + y * y)
@@ -81,7 +82,7 @@ class JoystickView: UIView {
             sendAngle = 2 * Double.pi - angle
         }
 
-        delegate?.joystickView(joystickView: self, didMovedTo: sendAngle)
+        fireTimer(angle: Float(sendAngle))
 
         if sqrt(x * x + y * y) > frame.width / 2 {
             let x = frame.width / 2 * (1 + cos(angle)) - 20
@@ -96,6 +97,19 @@ class JoystickView: UIView {
             circleView.frame = CGRect(origin: CGPoint(x: point.x - 20, y: point.y - 20),
                                       size: CGSize(width: 40, height: 40))
         }
+    }
+
+    private func fireTimer(angle: Float? = nil) {
+        timer?.invalidate()
+        timer = nil
+
+        guard let angle = angle else { return }
+
+        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+            print("fired")
+            self?.delegate?.joystickView(joystickView: self ?? JoystickView(), didMovedTo: angle)
+        }
+        timer?.fire()
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -119,18 +133,12 @@ class JoystickView: UIView {
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesEnded(touches, with: event)
 
-        let center = CGPoint(x: frame.width / 2, y: frame.height / 2)
-
-        joystickMovedTo(point: center)
-        delegate?.joystickView(joystickView: self, didStopedUsing: true)
+        joystickMovedTo()
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesCancelled(touches, with: event)
 
-        let center = CGPoint(x: frame.width / 2, y: frame.height / 2)
-
-        joystickMovedTo(point: center)
-        delegate?.joystickView(joystickView: self, didStopedUsing: true)
+        joystickMovedTo()
     }
 }

@@ -133,7 +133,20 @@ class ViewController: UIViewController {
 }
 
 extension ViewController: JoystickViewDelegate {
-    func joystickView(joystickView: JoystickView, didMovedTo angle: Double) {
-        
+    func joystickView(joystickView: JoystickView, didMovedTo angle: Float) {
+        arView.scene.anchors.forEach { anchor in
+            guard let entity = anchor.children.first else { print("no entity"); return }
+            var transform = entity.transform
+            transform.matrix.columns.3.x += 0.001 * cos(angle)
+            transform.matrix.columns.3.z -= 0.001 * sin(angle)
+            print(transform)
+            entity.move(to: transform, relativeTo: anchor)
+        }
+    }
+
+    func joystickView(joystickView: JoystickView, didStopedUsing: Bool) {
+        arView.scene.anchors.forEach { anchor in
+            anchor.children.first?.stopAllAnimations()
+        }
     }
 }
