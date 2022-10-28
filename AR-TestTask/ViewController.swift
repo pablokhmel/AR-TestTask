@@ -8,9 +8,11 @@
 import UIKit
 import RealityKit
 import ARKit
+import ZIPFoundation
 
 class ViewController: UIViewController {
 
+    var imageGotFound = false
     var cubesCount = 0 {
         didSet {
             joystickView.isHidden = cubesCount == 0
@@ -25,6 +27,7 @@ class ViewController: UIViewController {
         let press = UILongPressGestureRecognizer(target: self, action: #selector(handlePress(_:)))
         view.addGestureRecognizer(tap)
         view.addGestureRecognizer(press)
+        view.session.delegate = self
         return view
     }()
 
@@ -36,17 +39,18 @@ class ViewController: UIViewController {
         view.isHidden = true
         return view
     }()
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
         setupSubviews()
         startPlaneDetection()
-        print("loaded")
     }
 
-    override func viewDidLayoutSubviews() {
-        arView.frame = view.bounds
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        downloadImage(url: "https://mix-ar.ru/content/ios/marker.jpg")
     }
 
     private func setupSubviews() {
@@ -66,6 +70,44 @@ class ViewController: UIViewController {
         ])
     }
 
+    private func startTracking(image: CGImage) {
+        let arImage = ARReferenceImage(image, orientation: .up, physicalWidth: 0.1)
+        arImage.name = "new image"
+
+        guard let configuration = arView.session.configuration as? ARWorldTrackingConfiguration else { return }
+
+        configuration.automaticImageScaleEstimationEnabled = true
+        configuration.detectionImages = Set([arImage])
+        configuration.maximumNumberOfTrackedImages = 1
+
+        arView.session.run(configuration, options: [.resetTracking, .removeExistingAnchors])
+    }
+
+    private func downloadImage(url: String) {
+        guard let url = URL(string: url) else { return }
+
+        getData(from: url) { [weak self] data, response, error in
+            guard let data = data,
+                  let image = UIImage(data: data)?.cgImage,
+                    error == nil else { self?.presentErrorAlert(); return }
+
+            DispatchQueue.main.async {
+                self?.startTracking(image: image)
+            }
+        }
+    }
+
+    private func presentErrorAlert() {
+        let alert = UIAlertController(title: "Error", message: "Something went wrong", preferredStyle: .alert)
+        let action = UIAlertAction(title: "OK", style: .cancel) { _ in
+            alert.dismiss(animated: true)
+        }
+
+        alert.addAction(action)
+
+        present(alert, animated: true)
+    }
+
     private func startPlaneDetection() {
         arView.automaticallyConfigureSession = true
         let config = ARWorldTrackingConfiguration()
@@ -75,17 +117,14 @@ class ViewController: UIViewController {
     }
 
     private func addModel(to point: simd_float3) {
-        // Creating object
         let cube = MeshResource.generateBox(size: 0.05)
         let material = SimpleMaterial(color: UIColor.getRandomColor(), isMetallic: false)
         let entity = ModelEntity(mesh: cube, materials: [material])
         entity.generateCollisionShapes(recursive: true)
 
-        // Adding object
         let anchor = AnchorEntity(world: point)
         anchor.addChild(entity)
 
-        // Adding anchor to view
         arView.scene.addAnchor(anchor)
 
         cubesCount += 1
@@ -102,6 +141,25 @@ class ViewController: UIViewController {
         arView.scene.removeAnchor(anchor)
 
         cubesCount -= 1
+    }
+
+    private func unarchiveModel(at path: String) {
+        guard let unarchivePath = URL(string: "file://\(path)") else { return }
+        let savePath = unarchivePath.deletingLastPathComponent()
+
+        let modelPath = unarchivePath.deletingLastPathComponent().appendingPathComponent("/crystal_17_2.fbx", conformingTo: .utf8PlainText)
+
+        if !FileManager().fileExists(atPath: modelPath.path) {
+            do {
+                try FileManager().unzipItem(at: unarchivePath, to: savePath)
+                print("success")
+            } catch {
+                print("Extraction of ZIP archive failed with error:\(error)")
+            }
+        }
+
+        let mesh = MDLAsset(url: modelPath)
+        print(mesh)
     }
 
     @objc
@@ -147,6 +205,21 @@ extension ViewController: JoystickViewDelegate {
     func joystickView(joystickView: JoystickView, didStopedUsing: Bool) {
         arView.scene.anchors.forEach { anchor in
             anchor.children.first?.stopAllAnimations()
+        }
+    }
+}
+
+extension ViewController: ARSessionDelegate {
+    func session(_ session: ARSession, didAdd anchors: [ARAnchor]) {
+        let imageAnchors = anchors.compactMap { $0 as? ARImageAnchor }
+        guard let anchor = imageAnchors.first, !imageGotFound else { return }
+
+        imageGotFound = true
+        guard let url = URL(string: "https://mix-ar.ru/content/ios/model.zip") else { return }
+        Downloader.load(URL: url) { [weak self] path, error in
+            print(error)
+            guard let path = path else { return }
+            self?.unarchiveModel(at: path)
         }
     }
 }
