@@ -8,11 +8,13 @@
 import UIKit
 import RealityKit
 import ARKit
-import ZIPFoundation
+import Combine
 
 class ViewController: UIViewController {
 
     var imageGotFound = false
+    var crystalEntity: Entity? = nil
+
     var cubesCount = 0 {
         didSet {
             joystickView.isHidden = cubesCount == 0
@@ -143,25 +145,6 @@ class ViewController: UIViewController {
         cubesCount -= 1
     }
 
-    private func unarchiveModel(at path: String) {
-        guard let unarchivePath = URL(string: "file://\(path)") else { return }
-        let savePath = unarchivePath.deletingLastPathComponent()
-
-        let modelPath = unarchivePath.deletingLastPathComponent().appendingPathComponent("/crystal_17_2.fbx", conformingTo: .utf8PlainText)
-
-        if !FileManager().fileExists(atPath: modelPath.path) {
-            do {
-                try FileManager().unzipItem(at: unarchivePath, to: savePath)
-                print("success")
-            } catch {
-                print("Extraction of ZIP archive failed with error:\(error)")
-            }
-        }
-
-        let mesh = MDLAsset(url: modelPath)
-        print(mesh)
-    }
-
     @objc
     private func handleTap(_ sender: UITapGestureRecognizer?) {
         guard let tapLocation = sender?.location(in: arView) else { return }
@@ -193,10 +176,11 @@ class ViewController: UIViewController {
 extension ViewController: JoystickViewDelegate {
     func joystickView(joystickView: JoystickView, didMovedTo angle: Float) {
         arView.scene.anchors.forEach { anchor in
-            guard let entity = anchor.children.first else { print("no entity"); return }
+            guard let entity = anchor.children.first, entity != crystalEntity else { return }
             var transform = entity.transform
-            transform.matrix.columns.3.x += 0.001 * cos(angle)
-            transform.matrix.columns.3.z -= 0.001 * sin(angle)
+            let distanse = Float(0.001) * (crystalEntity == nil ? 1 : 2)
+            transform.matrix.columns.3.x += distanse * cos(angle)
+            transform.matrix.columns.3.z -= distanse * sin(angle)
             print(transform)
             entity.move(to: transform, relativeTo: anchor)
         }
@@ -215,11 +199,22 @@ extension ViewController: ARSessionDelegate {
         guard let anchor = imageAnchors.first, !imageGotFound else { return }
 
         imageGotFound = true
-        guard let url = URL(string: "https://mix-ar.ru/content/ios/model.zip") else { return }
-        Downloader.load(URL: url) { [weak self] path, error in
-            print(error)
-            guard let path = path else { return }
-            self?.unarchiveModel(at: path)
-        }
+
+        var cancellable: AnyCancellable? = nil
+        cancellable = ModelEntity.loadModelAsync(named: "crystal_17_2")
+            .collect()
+            .sink(receiveCompletion: { error in
+                print(error)
+                cancellable?.cancel()
+            }, receiveValue: { [weak self] entities in
+                print("loading")
+                guard let entity = entities.first else { return }
+                let anchorEntity = AnchorEntity(anchor: anchor)
+                entity.setScale(SIMD3<Float>(0.001, 0.001, 0.001) , relativeTo: anchorEntity)
+                entity.generateCollisionShapes(recursive: true)
+                self?.crystalEntity = entity
+                anchorEntity.addChild(entity)
+                self?.arView.scene.addAnchor(anchorEntity)
+            })
     }
 }
