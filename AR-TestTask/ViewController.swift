@@ -12,12 +12,39 @@ import Combine
 
 class ViewController: UIViewController {
 
+    var coinPicked: AVAudioPlayer?
+
     var imageGotFound = false
     var crystalEntity: Entity? = nil
+    var coinsModels: [Entity] = [] {
+        didSet {
+            if oldValue.count != 0 && coinsModels.count == 0 {
+                addCoins(count: 3)
+            }
+        }
+    }
+
+    var cubesEntities: [Entity] = [] {
+        didSet {
+            joystickView.isHidden = cubesEntities.count == 0
+            if oldValue.count == 0 && cubesEntities.count != 0 {
+                addCoins(count: 3)
+            }
+        }
+    }
+
+    var score = 0 {
+        didSet {
+            scoreLabel.text = "Score: \(score)"
+        }
+    }
+
+    var subscriptions: [Cancellable] = []
 
     var cubesCount = 0 {
         didSet {
             joystickView.isHidden = cubesCount == 0
+            addCoins(count: 3)
         }
     }
     
@@ -42,6 +69,15 @@ class ViewController: UIViewController {
         return view
     }()
 
+    private lazy var scoreLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Score: \(score)"
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.backgroundColor = .white
+        label.textColor = .gray
+        return label
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -58,6 +94,7 @@ class ViewController: UIViewController {
     private func setupSubviews() {
         view.addSubview(arView)
         arView.addSubview(joystickView)
+        arView.addSubview(scoreLabel)
 
         NSLayoutConstraint.activate([
             arView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -68,7 +105,10 @@ class ViewController: UIViewController {
             joystickView.centerXAnchor.constraint(equalTo: arView.centerXAnchor),
             joystickView.bottomAnchor.constraint(equalTo: arView.safeAreaLayoutGuide.bottomAnchor, constant: -40),
             joystickView.heightAnchor.constraint(equalToConstant: 100),
-            joystickView.widthAnchor.constraint(equalToConstant: 100)
+            joystickView.widthAnchor.constraint(equalToConstant: 100),
+
+            scoreLabel.leadingAnchor.constraint(equalTo: arView.leadingAnchor, constant: 30),
+            scoreLabel.topAnchor.constraint(equalTo: arView.safeAreaLayoutGuide.topAnchor, constant: 30)
         ])
     }
 
@@ -91,7 +131,7 @@ class ViewController: UIViewController {
         getData(from: url) { [weak self] data, response, error in
             guard let data = data,
                   let image = UIImage(data: data)?.cgImage,
-                    error == nil else { self?.presentErrorAlert(); return }
+                  error == nil else { self?.presentErrorAlert(); return }
 
             DispatchQueue.main.async {
                 self?.startTracking(image: image)
@@ -110,12 +150,80 @@ class ViewController: UIViewController {
         present(alert, animated: true)
     }
 
+    private func playCoinSound() {
+        guard let path = Bundle.main.path(forResource: "coin_sound.mp3", ofType: nil) else { return }
+        let url = URL(fileURLWithPath: path)
+
+        do {
+            coinPicked = try AVAudioPlayer(contentsOf: url)
+            coinPicked?.play()
+        } catch {
+            print(error)
+        }
+    }
+
     private func startPlaneDetection() {
         arView.automaticallyConfigureSession = true
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = [.horizontal]
         config.environmentTexturing = .automatic
         arView.session.run(config)
+    }
+
+    private func addCoins(count: Int) {
+        for _ in 0..<count {
+            var cancellable: AnyCancellable? = nil
+            cancellable = ModelEntity.loadModelAsync(named: "coin")
+                .collect()
+                .sink(receiveCompletion: { error in
+                    print(error)
+                    cancellable?.cancel()
+                }, receiveValue: { [weak self] entities in
+                    print("loading")
+                    guard let entity = entities.first else { return }
+                    self?.append(coin: entity)
+                })
+        }
+    }
+
+    private func getRandomsElement() -> Entity {
+        return cubesEntities.randomElement() ?? Entity()
+    }
+
+    private func append(coin: Entity) {
+        let randomEntity = getRandomsElement()
+        var entitiesPos = randomEntity.position(relativeTo: nil)
+        entitiesPos.x = Float.random(in: -0.2...0.2)
+        entitiesPos.z = Float.random(in: -0.2...0.2)
+        let anchor = AnchorEntity(world: entitiesPos)
+        anchor.addChild(coin)
+        coin.setScale(SIMD3<Float>(0.0005, 0.0005, 0.0005) , relativeTo: anchor)
+        coin.generateCollisionShapes(recursive: true)
+        let sub = arView.scene.subscribe(to: CollisionEvents.Began.self, on: coin) { [weak self] event in
+            // Checking
+            guard let coins = self?.coinsModels, let cubes = self?.cubesEntities else { return }
+            guard (cubes.contains(event.entityA) && coins.contains(event.entityB)) ||
+                    (cubes.contains(event.entityB) && coins.contains(event.entityA)) else { return }
+            guard let anchor = coin.anchor else { return }
+
+            // Removing entity
+            DispatchQueue.main.async {
+                self?.arView.scene.removeAnchor(anchor)
+            }
+
+            self?.coinsModels.removeAll(where: { $0 == coin })
+
+            // Adding score
+            self?.score += 1
+
+            // Play sound
+            self?.playCoinSound()
+        }
+
+        subscriptions += [sub]
+
+        coinsModels.append(coin)
+        arView.scene.addAnchor(anchor)
     }
 
     private func addModel(to point: simd_float3) {
@@ -129,7 +237,7 @@ class ViewController: UIViewController {
 
         arView.scene.addAnchor(anchor)
 
-        cubesCount += 1
+        cubesEntities.append(entity)
     }
 
     private func changeColor(_ model: Entity) {
@@ -141,8 +249,7 @@ class ViewController: UIViewController {
     private func removeModel(_ model: Entity) {
         guard let anchor = model.anchor else { return }
         arView.scene.removeAnchor(anchor)
-
-        cubesCount -= 1
+        cubesEntities.removeAll(where: { $0 == model })
     }
 
     @objc
@@ -156,6 +263,7 @@ class ViewController: UIViewController {
         let position = simd_make_float3(ray.worldTransform.columns.3)
 
         if let entity = arView.entity(at: tapLocation) {
+            guard cubesEntities.contains(where: { $0 == entity }) else { return }
             changeColor(entity)
         } else {
             addModel(to: position)
@@ -166,6 +274,7 @@ class ViewController: UIViewController {
         guard let location = sender?.location(in: arView) else { return }
 
         if let entity = arView.entity(at: location) {
+            guard cubesEntities.contains(where: { $0 == entity }) else { return }
             removeModel(entity)
         } else {
             print("not found")
@@ -175,20 +284,12 @@ class ViewController: UIViewController {
 
 extension ViewController: JoystickViewDelegate {
     func joystickView(joystickView: JoystickView, didMovedTo angle: Float) {
-        arView.scene.anchors.forEach { anchor in
-            guard let entity = anchor.children.first, entity != crystalEntity else { return }
+        cubesEntities.forEach { entity in
             var transform = entity.transform
             let distanse = Float(0.001) * (crystalEntity == nil ? 1 : 2)
             transform.matrix.columns.3.x += distanse * cos(angle)
             transform.matrix.columns.3.z -= distanse * sin(angle)
-            print(transform)
-            entity.move(to: transform, relativeTo: anchor)
-        }
-    }
-
-    func joystickView(joystickView: JoystickView, didStopedUsing: Bool) {
-        arView.scene.anchors.forEach { anchor in
-            anchor.children.first?.stopAllAnimations()
+            entity.move(to: transform, relativeTo: entity.anchor)
         }
     }
 }

@@ -13,6 +13,8 @@
 		FA028D6D29033203007CF9A7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FA028D6B29033203007CF9A7 /* LaunchScreen.storyboard */; };
 		FACDDF0B290A9F4400795A3B /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACDDF0A290A9F4400795A3B /* Network.swift */; };
 		FACDDF0F290C0BF400795A3B /* crystal_17_2.usdz in Resources */ = {isa = PBXBuildFile; fileRef = FACDDF0E290C0BF400795A3B /* crystal_17_2.usdz */; };
+		FACDDF11290D54BB00795A3B /* coin.usdz in Resources */ = {isa = PBXBuildFile; fileRef = FACDDF10290D54BB00795A3B /* coin.usdz */; };
+		FACDDF17290EC35200795A3B /* coin_sound.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FACDDF16290EC35200795A3B /* coin_sound.mp3 */; };
 		FACE797C29081A510014FDC9 /* UIColor + Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACE797B29081A510014FDC9 /* UIColor + Extension.swift */; };
 		FACE797E29087EB00014FDC9 /* JoystickView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FACE797D29087EB00014FDC9 /* JoystickView.swift */; };
 /* End PBXBuildFile section */
@@ -25,6 +27,8 @@
 		FA028D6C29033203007CF9A7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		FACDDF0A290A9F4400795A3B /* Network.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network.swift; sourceTree = "<group>"; };
 		FACDDF0E290C0BF400795A3B /* crystal_17_2.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = crystal_17_2.usdz; sourceTree = "<group>"; };
+		FACDDF10290D54BB00795A3B /* coin.usdz */ = {isa = PBXFileReference; lastKnownFileType = file.usdz; path = coin.usdz; sourceTree = "<group>"; };
+		FACDDF16290EC35200795A3B /* coin_sound.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = coin_sound.mp3; sourceTree = "<group>"; };
 		FACE797B29081A510014FDC9 /* UIColor + Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor + Extension.swift"; sourceTree = "<group>"; };
 		FACE797D29087EB00014FDC9 /* JoystickView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JoystickView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -64,8 +68,10 @@
 				FACE797B29081A510014FDC9 /* UIColor + Extension.swift */,
 				FACDDF0A290A9F4400795A3B /* Network.swift */,
 				FACE797D29087EB00014FDC9 /* JoystickView.swift */,
-				FA028D6929033203007CF9A7 /* Assets.xcassets */,
+				FACDDF16290EC35200795A3B /* coin_sound.mp3 */,
+				FACDDF10290D54BB00795A3B /* coin.usdz */,
 				FACDDF0E290C0BF400795A3B /* crystal_17_2.usdz */,
+				FA028D6929033203007CF9A7 /* Assets.xcassets */,
 				FA028D6B29033203007CF9A7 /* LaunchScreen.storyboard */,
 			);
 			path = "AR-TestTask";
@@ -131,6 +137,8 @@
 			files = (
 				FA028D6D29033203007CF9A7 /* LaunchScreen.storyboard in Resources */,
 				FACDDF0F290C0BF400795A3B /* crystal_17_2.usdz in Resources */,
+				FACDDF11290D54BB00795A3B /* coin.usdz in Resources */,
+				FACDDF17290EC35200795A3B /* coin_sound.mp3 in Resources */,
 				FA028D6A29033203007CF9A7 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

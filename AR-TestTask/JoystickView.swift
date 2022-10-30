@@ -106,7 +106,6 @@ class JoystickView: UIView {
         guard let angle = angle else { return }
 
         timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
-            print("fired")
             self?.delegate?.joystickView(joystickView: self ?? JoystickView(), didMovedTo: angle)
         }
         timer?.fire()
