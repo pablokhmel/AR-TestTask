@@ -179,6 +179,7 @@ class ViewController: UIViewController {
     // MARK: - Cubes methods
 
     private func addModel(to point: simd_float3) {
+        print(point)
         let cube = MeshResource.generateBox(size: 0.05)
         let material = SimpleMaterial(color: UIColor.getRandomColor(), isMetallic: false)
         let entity = ModelEntity(mesh: cube, materials: [material])
@@ -229,11 +230,11 @@ class ViewController: UIViewController {
     private func append(coin: Entity) {
         let randomEntity = getRandomsElement()
         guard var entitiesPos = randomEntity.anchor?.position(relativeTo: nil) else { return }
-        entitiesPos.x = Float.random(in: -0.1...0.1)
-        entitiesPos.z = Float.random(in: -0.1...0.1)
+        entitiesPos.x += [Float.random(in: -0.15...(-0.05)), Float.random(in: 0.05...0.15)].randomElement()!
+        entitiesPos.z += [Float.random(in: -0.15...(-0.05)), Float.random(in: 0.05...0.15)].randomElement()!
         let anchor = AnchorEntity(world: entitiesPos)
         anchor.addChild(coin)
-        coin.setScale(SIMD3<Float>(0.0005, 0.0005, 0.0005) , relativeTo: anchor)
+        coin.setScale(SIMD3<Float>(0.0005, 0.0005, 0.0005), relativeTo: nil)
         coin.generateCollisionShapes(recursive: true)
         let sub = arView.scene.subscribe(to: CollisionEvents.Began.self, on: coin) { [weak self] event in
             self?.collised(coin: coin, event: event)
