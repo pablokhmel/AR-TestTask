@@ -65,12 +65,12 @@
 			children = (
 				FA028D6029033200007CF9A7 /* AppDelegate.swift */,
 				FA028D6229033200007CF9A7 /* ViewController.swift */,
-				FACE797B29081A510014FDC9 /* UIColor + Extension.swift */,
-				FACDDF0A290A9F4400795A3B /* Network.swift */,
 				FACE797D29087EB00014FDC9 /* JoystickView.swift */,
+				FACDDF0A290A9F4400795A3B /* Network.swift */,
+				FACE797B29081A510014FDC9 /* UIColor + Extension.swift */,
 				FACDDF16290EC35200795A3B /* coin_sound.mp3 */,
-				FACDDF10290D54BB00795A3B /* coin.usdz */,
 				FACDDF0E290C0BF400795A3B /* crystal_17_2.usdz */,
+				FACDDF10290D54BB00795A3B /* coin.usdz */,
 				FA028D6929033203007CF9A7 /* Assets.xcassets */,
 				FA028D6B29033203007CF9A7 /* LaunchScreen.storyboard */,
 			);

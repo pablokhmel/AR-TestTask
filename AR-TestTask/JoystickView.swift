@@ -7,6 +7,8 @@
 
 import UIKit
 
+// MARK: - Protocols
+
 protocol JoystickViewDelegate {
     func joystickView(joystickView: JoystickView, didMovedTo angle: Float)
 }
@@ -16,9 +18,14 @@ extension JoystickViewDelegate {
 }
 
 class JoystickView: UIView {
+
+    // MARK: - Properties
+
     var delegate: JoystickViewDelegate?
 
     var timer: Timer?
+
+    // MARK: - Views
 
     private lazy var circleView: UIView = {
         let view = UIView()
@@ -27,6 +34,8 @@ class JoystickView: UIView {
         view.backgroundColor = .cyan
         return view
     }()
+
+    // MARK: - Lifecycle
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -37,6 +46,8 @@ class JoystickView: UIView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    // MARK: - Views methods
 
     override func layoutSubviews() {
         layer.cornerRadius = frame.height / 2
@@ -49,6 +60,22 @@ class JoystickView: UIView {
     private func commonInit() {
         addSubview(circleView)
     }
+
+    // MARK: - Timer methods
+
+    private func fireTimer(angle: Float? = nil) {
+        timer?.invalidate()
+        timer = nil
+
+        guard let angle = angle else { return }
+
+        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+            self?.delegate?.joystickView(joystickView: self ?? JoystickView(), didMovedTo: angle)
+        }
+        timer?.fire()
+    }
+
+    // MARK: - Movement methods
 
     private func joystickMovedTo(point: CGPoint? = nil) {
         guard let point = point else {
@@ -99,17 +126,7 @@ class JoystickView: UIView {
         }
     }
 
-    private func fireTimer(angle: Float? = nil) {
-        timer?.invalidate()
-        timer = nil
-
-        guard let angle = angle else { return }
-
-        timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
-            self?.delegate?.joystickView(joystickView: self ?? JoystickView(), didMovedTo: angle)
-        }
-        timer?.fire()
-    }
+    // MARK: - Overriding touches methods
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
